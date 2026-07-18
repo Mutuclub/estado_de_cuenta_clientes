@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Arts Nova · Consulta tu póliza</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f4f6fb; --card:#ffffff; --ink:#16233d; --ink2:#3a4a66; --muted:#6b7280;
+    --line:#e3e8f2; --brand:#16233d; --accent:#2563eb; --accent2:#4f8ef7;
+    --green:#0e7c66; --greenbg:#e6f6f1; --red:#dc2626; --redbg:#fdecec;
+    --amber:#d97706; --amberbg:#fdf3e6; --radius:16px; --shadow:0 10px 40px rgba(22,35,61,.10);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(--ink);
+    min-height:100vh;display:flex;flex-direction:column;align-items:center;
+    padding:24px 16px 60px;line-height:1.5}
+  .topbar{width:100%;max-width:560px;display:flex;align-items:center;gap:12px;margin-bottom:28px}
+  .brand-badge{width:42px;height:42px;border-radius:12px;background:var(--brand);
+    display:flex;align-items:center;justify-content:center;color:#fff;
+    font-family:'Syne';font-weight:800;font-size:18px;letter-spacing:-.5px}
+  .brand-name{font-family:'Syne';font-weight:800;font-size:19px;letter-spacing:-.4px}
+  .brand-sub{font-size:12.5px;color:var(--muted);margin-top:-2px}
+
+  .card{width:100%;max-width:560px;background:var(--card);border:1px solid var(--line);
+    border-radius:var(--radius);box-shadow:var(--shadow);padding:30px 28px}
+  .view{display:none} .view.active{display:block}
+
+  h1{font-family:'Syne';font-weight:700;font-size:23px;letter-spacing:-.5px;margin-bottom:6px}
+  .lead{color:var(--ink2);font-size:14.5px;margin-bottom:24px}
+
+  label{display:block;font-size:13px;font-weight:600;color:var(--ink2);margin-bottom:7px}
+  .field{margin-bottom:18px}
+  input[type=text],input[type=tel]{width:100%;padding:13px 15px;border:1.5px solid var(--line);
+    border-radius:11px;font-size:15.5px;font-family:inherit;color:var(--ink);
+    background:#fbfcfe;transition:border-color .15s,box-shadow .15s}
+  input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(37,99,235,.12);background:#fff}
+  .hint{font-size:12px;color:var(--muted);margin-top:6px}
+
+  .btn{width:100%;padding:14px;border:none;border-radius:11px;font-family:inherit;
+    font-size:15.5px;font-weight:600;cursor:pointer;transition:transform .06s,filter .15s;
+    display:flex;align-items:center;justify-content:center;gap:8px}
+  .btn:active{transform:translateY(1px)}
+  .btn-primary{background:var(--brand);color:#fff}
+  .btn-primary:hover{filter:brightness(1.12)}
+  .btn-primary:disabled{opacity:.6;cursor:not-allowed;filter:none}
+  .btn-accent{background:var(--accent);color:#fff}
+  .btn-accent:hover{filter:brightness(1.08)}
+  .btn-ghost{background:transparent;color:var(--ink2);border:1.5px solid var(--line)}
+  .btn-ghost:hover{background:#f7f9fc}
+  .btn-row{display:flex;flex-direction:column;gap:11px;margin-top:8px}
+
+  .privacy{margin-top:20px;padding:12px 14px;background:#f7f9fc;border:1px solid var(--line);
+    border-radius:10px;font-size:12px;color:var(--muted)}
+
+  .msg{margin-top:16px;padding:13px 15px;border-radius:11px;font-size:13.5px;display:none}
+  .msg.show{display:block}
+  .msg.err{background:var(--redbg);color:var(--red);border:1px solid #f6cccc}
+  .msg.warn{background:var(--amberbg);color:var(--amber);border:1px solid #f4dcb0}
+
+  /* ── Resultado ── */
+  .greet{font-family:'Syne';font-weight:700;font-size:21px;letter-spacing:-.4px;margin-bottom:2px}
+  .greet-sub{color:var(--muted);font-size:13.5px;margin-bottom:18px}
+  .status-pill{display:inline-flex;align-items:center;gap:7px;padding:6px 13px;border-radius:999px;
+    font-size:13px;font-weight:600;margin-bottom:20px}
+  .status-pill .dot{width:8px;height:8px;border-radius:50%}
+  .st-ok{background:var(--greenbg);color:var(--green)} .st-ok .dot{background:var(--green)}
+  .st-warn{background:var(--amberbg);color:var(--amber)} .st-warn .dot{background:var(--amber)}
+  .st-bad{background:var(--redbg);color:var(--red)} .st-bad .dot{background:var(--red)}
+  .st-info{background:#e8f0fe;color:var(--accent)} .st-info .dot{background:var(--accent)}
+
+  .summary{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line);
+    border:1px solid var(--line);border-radius:13px;overflow:hidden;margin-bottom:14px}
+  .cell{background:#fff;padding:13px 15px}
+  .cell.full{grid-column:1/-1}
+  .cell .k{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;font-weight:600}
+  .cell .v{font-size:15px;font-weight:600;margin-top:3px;color:var(--ink)}
+  .cell .v.big{font-size:19px;font-family:'Syne'}
+  .v.saldo-pend{color:var(--red)} .v.saldo-ok{color:var(--green)}
+
+  .docs-title{font-size:12.5px;font-weight:700;color:var(--muted);text-transform:uppercase;
+    letter-spacing:.5px;margin:22px 0 12px}
+
+  #toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);
+    background:var(--brand);color:#fff;padding:12px 20px;border-radius:12px;font-size:14px;
+    box-shadow:var(--shadow);opacity:0;pointer-events:none;transition:.3s;z-index:99;max-width:90vw;text-align:center}
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  .spinner{width:17px;height:17px;border:2.5px solid rgba(255,255,255,.35);
+    border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;display:none}
+  .loading .spinner{display:inline-block}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  .foot{max-width:560px;width:100%;text-align:center;color:var(--muted);font-size:11.5px;margin-top:22px}
+  @media(max-width:480px){ .card{padding:24px 20px} .summary{grid-template-columns:1fr} }
+</style>
+</head>
+<body>
+
+  <div class="topbar">
+    <div class="brand-badge">AN</div>
+    <div>
+      <div class="brand-name">Arts Nova</div>
+      <div class="brand-sub">Portal de consulta de pólizas</div>
+    </div>
+  </div>
+
+  <!-- ══════════ VISTA: ACCESO ══════════ -->
+  <div class="card view active" id="viewLogin">
+    <h1>Consulta tu póliza</h1>
+    <p class="lead">Ingresa tu número de póliza y el teléfono registrado para ver tu estado de cuenta y descargarlo en PDF.</p>
+
+    <div class="field">
+      <label for="inPoliza">Número de póliza</label>
+      <input type="text" id="inPoliza" inputmode="numeric" autocomplete="off" placeholder="Ej. 29765">
+    </div>
+    <div class="field">
+      <label for="inTel">Teléfono registrado</label>
+      <input type="tel" id="inTel" inputmode="numeric" autocomplete="off" placeholder="10 dígitos">
+      <div class="hint">El mismo número que diste al contratar tu póliza.</div>
+    </div>
+
+    <button class="btn btn-primary" id="btnConsultar" onclick="consultar()">
+      <span class="spinner"></span><span class="btn-label">Consultar mi póliza</span>
+    </button>
+
+    <div class="msg" id="loginMsg"></div>
+
+    <div class="privacy">
+      🔒 Tus datos viajan cifrados y solo mostramos la información de la póliza que coincide con el teléfono ingresado. Por seguridad, tras varios intentos fallidos el acceso a una póliza se bloquea temporalmente.
+    </div>
+  </div>
+
+  <!-- ══════════ VISTA: RESULTADO ══════════ -->
+  <div class="card view" id="viewResult">
+    <div class="greet" id="rGreet">Hola</div>
+    <div class="greet-sub" id="rGreetSub">Póliza —</div>
+    <div class="status-pill st-info" id="rPill"><span class="dot"></span><span id="rPillTxt">—</span></div>
+
+    <div class="summary">
+      <div class="cell full">
+        <div class="k">Saldo actual</div>
+        <div class="v big" id="rSaldo">—</div>
+      </div>
+      <div class="cell">
+        <div class="k">Próximo pago</div>
+        <div class="v" id="rProximo">—</div>
+      </div>
+      <div class="cell">
+        <div class="k">Mensualidad</div>
+        <div class="v" id="rMensual">—</div>
+      </div>
+      <div class="cell full">
+        <div class="k">Vehículo</div>
+        <div class="v" id="rVehiculo">—</div>
+      </div>
+      <div class="cell">
+        <div class="k">Placas</div>
+        <div class="v" id="rPlacas">—</div>
+      </div>
+      <div class="cell">
+        <div class="k">Vigencia</div>
+        <div class="v" id="rVigencia">—</div>
+      </div>
+    </div>
+
+    <div class="docs-title">Descarga tu documento</div>
+    <div class="btn-row">
+      <button class="btn btn-accent" id="btnPDF" onclick="descargarEstadoCuenta()">
+        <span class="spinner"></span><span class="btn-label">📄 Descargar estado de cuenta (PDF)</span>
+      </button>
+      <button class="btn btn-ghost" onclick="salir()">← Consultar otra póliza</button>
+    </div>
+
+    <div class="msg" id="resultMsg"></div>
+  </div>
+
+  <div class="foot">
+    Arts Nova · Documento informativo de cobranza. Para aclaraciones, comunícate a los teléfonos de tu asesor.
+  </div>
+
+  <div id="toast"></div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════════════
+   CONFIGURACIÓN — Portal de autoservicio del cliente (Arts Nova)
+   ───────────────────────────────────────────────────────────────────────
+   El portal NUNCA descarga la base completa. Cada consulta pega al backend
+   de Apps Script, que valida póliza+teléfono, aplica candado de intentos y
+   devuelve SOLO el registro de esa póliza.
+   ═══════════════════════════════════════════════════════════════════════ */
+const BACKEND_URL = 'https://script.google.com/macros/s/AKfycbztNjV-ALzmQmwtCE_SaP71NUd-zBlD7AMC66xM4syHa6R4NErxfknMrKWgUP_De5vqoQ/exec';
+
+/* Nombres de los parámetros que espera el backend (doGet e.parameter.*).
+   Si en tu Code.gs se llaman distinto, cámbialos aquí. */
+const PARAM_POLIZA   = 'poliza';
+const PARAM_TELEFONO = 'telefono';
+
+let _currentPoliza = null;
+
+/* ── Helpers básicos ─────────────────────────────────────────────────── */
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('show'),3500);
+}
+function parseMoney(v){
+  if(v===null||v===undefined||v==='') return null;
+  if(typeof v==='number') return isNaN(v)?null:v;
+  const s=String(v).replace(/[^0-9.\-]/g,'');
+  if(s===''||s==='-'||s==='.') return null;
+  const n=parseFloat(s); return isNaN(n)?null:n;
+}
+function setBtnLoading(btn,on){ btn.classList.toggle('loading',on); btn.disabled=on; }
+function msgBox(id,texto,tipo){
+  const m=document.getElementById(id);
+  if(!texto){ m.className='msg'; m.textContent=''; return; }
+  m.className='msg show '+(tipo||'err'); m.textContent=texto;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   ADAPTADOR  ⚠️ ÚNICO PUNTO QUE DEPENDE DE LA FORMA EXACTA DE TU Code.gs
+   ───────────────────────────────────────────────────────────────────────
+   Convierte la respuesta JSON del backend en el objeto `p` que consume el
+   motor de estado de cuenta (mismos nombres que las apps internas).
+   Clavado a las llaves exactas del backend (Code.gs → buscarRegistro()).
+   Si algún día migras a Supabase y cambian los nombres, este es el único
+   punto a tocar.
+   ═══════════════════════════════════════════════════════════════════════ */
+function pick(obj, ...keys){
+  for(const k of keys){
+    if(obj && obj[k]!==undefined && obj[k]!==null && obj[k]!=='') return obj[k];
+  }
+  return '';
+}
+// Normaliza cualquier fecha (Date, ISO yyyy-mm-dd, dd/mm/aaaa) a dd/mm/aaaa
+function normFecha(v){
+  if(!v) return '';
+  if(v instanceof Date && !isNaN(v)) return _f(v);
+  const s=String(v).trim();
+  let m=s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);            // ISO
+  if(m) return `${m[3].padStart(2,'0')}/${m[2].padStart(2,'0')}/${m[1]}`;
+  m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);             // ya dd/mm/aaaa
+  if(m) return `${m[1].padStart(2,'0')}/${m[2].padStart(2,'0')}/${m[3]}`;
+  const d=new Date(s); return isNaN(d)?s:_f(d);
+  function _f(d){ return String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear(); }
+}
+function _f(d){ return String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear(); }
+
+function adaptarRegistro(reg){
+  // Backend ya entrega fechas en dd/mm/aaaa; normFecha las deja pasar tal cual.
+  const PAGOS = (Array.isArray(reg.pagos)?reg.pagos:[]).map(x=>({
+    recibo: x.recibo,
+    fecha:  normFecha(x.fecha),
+    monto:  parseMoney(x.monto)
+  }));
+  return {
+    POLIZA:            reg.poliza,
+    NOMBRE:            reg.nombre,
+    TELEFONO:          reg.telefono,
+    COBERTURA:         reg.cobertura,
+    'TIPO DE POLIZA':  reg.tipoPoliza,
+    MARCA:             reg.vehiculo,    // columna "Vehículo" de Bd Clientes
+    MODELO:            reg.modeloAnio,  // columna "Modelo" (año)
+    TIPO:              reg.tipoVeh,     // columna "Tipo"
+    COLOR:             reg.color,
+    PLACAS:            reg.placas,
+    SERIE:             reg.serie,
+    COSTO:             reg.costo,
+    'PAGO INICIAL':    reg.inicial,
+    'PAGO MENSUAL':    reg.mensual,
+    'INICIO VIGENCIA': normFecha(reg.inicio),
+    'TERMINO VIGENCIA':normFecha(reg.termino),
+    ESTATUS:           reg.estatus,
+    PAGOS
+  };
+}
+
+/* Interpreta la respuesta completa del backend y separa éxito / error.
+   Maneja: {ok:true, registro:{}} · {ok:false, error, mensaje} · registro directo */
+function interpretarRespuesta(data){
+  if(data==null) return {tipo:'error', mensaje:'Respuesta vacía del servidor.'};
+  if(data.ok===true && data.registro) return {tipo:'ok', registro:data.registro};
+  if(data.ok===false){
+    const err=String(data.error||'').trim();
+    // El backend manda el bloqueo dentro de `error` ("Demasiados intentos. Intenta de nuevo en N minutos.")
+    const esBloqueo=/demasiados intentos|intenta de nuevo en|bloque/i.test(err);
+    return {
+      tipo: esBloqueo?'bloqueo':'nohallado',
+      mensaje: err || (esBloqueo
+        ? 'Demasiados intentos. Espera unos minutos e inténtalo de nuevo.'
+        : 'No encontramos una póliza que coincida con esos datos.')
+    };
+  }
+  return {tipo:'nohallado', mensaje:'No encontramos una póliza que coincida con esos datos.'};
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   CONSULTA
+   ═══════════════════════════════════════════════════════════════════════ */
+async function consultar(){
+  const poliza=document.getElementById('inPoliza').value.trim();
+  const tel=document.getElementById('inTel').value.replace(/\D/g,'');
+  msgBox('loginMsg','');
+  if(!poliza){ msgBox('loginMsg','Escribe tu número de póliza.'); return; }
+  if(tel.length<10){ msgBox('loginMsg','El teléfono debe tener 10 dígitos.'); return; }
+
+  const btn=document.getElementById('btnConsultar'); setBtnLoading(btn,true);
+  try{
+    const url=`${BACKEND_URL}?${PARAM_POLIZA}=${encodeURIComponent(poliza)}&${PARAM_TELEFONO}=${encodeURIComponent(tel)}`;
+    const resp=await fetch(url,{method:'GET'});
+    if(!resp.ok) throw new Error('HTTP '+resp.status);
+    const data=await resp.json();
+    const r=interpretarRespuesta(data);
+
+    if(r.tipo==='ok'){
+      _currentPoliza=adaptarRegistro(r.registro);
+      mostrarResultado(_currentPoliza);
+      msgBox('loginMsg','');
+    } else if(r.tipo==='bloqueo'){
+      msgBox('loginMsg','⏳ '+r.mensaje,'warn');
+    } else {
+      msgBox('loginMsg', r.mensaje || 'No encontramos esa póliza. Revisa los datos.');
+    }
+  }catch(e){
+    msgBox('loginMsg','No pudimos conectar con el servidor. Verifica tu internet e inténtalo de nuevo.');
+    console.error(e);
+  }finally{
+    setBtnLoading(btn,false);
+  }
+}
+
+function mostrarResultado(p){
+  const r=ecCalcular(p);
+  const nombre=(p.NOMBRE||'').toString().trim();
+  document.getElementById('rGreet').textContent = nombre ? 'Hola, '+primerNombre(nombre) : 'Tu póliza';
+  document.getElementById('rGreetSub').textContent = 'Póliza N.º '+(p.POLIZA||'—');
+
+  const est=(r.estatus||'').toUpperCase();
+  const pill=document.getElementById('rPill'), txt=document.getElementById('rPillTxt');
+  txt.textContent = est||'—';
+  pill.className='status-pill '+claseEstatus(est);
+
+  const saldoEl=document.getElementById('rSaldo');
+  saldoEl.textContent=ecMoneda(Math.max(0,r.saldo));
+  saldoEl.className='v big '+(r.saldo>0.5?'saldo-pend':'saldo-ok');
+  if(r.saldo<=0.5) saldoEl.textContent='$0.00 · Al corriente';
+
+  document.getElementById('rProximo').textContent = r.saldo>0.5 ? ecFmtFecha(r.proximo) : '—';
+  document.getElementById('rMensual').textContent = ecMoneda(r.mensual);
+  const veh=[p.MARCA,p.MODELO,p.TIPO,p.COLOR].filter(Boolean).join(' · ');
+  document.getElementById('rVehiculo').textContent = veh||'—';
+  document.getElementById('rPlacas').textContent = p.PLACAS||'—';
+  document.getElementById('rVigencia').textContent = ecFmtFecha(r.ini)+' – '+ecFmtFecha(r.fin);
+
+  document.getElementById('viewLogin').classList.remove('active');
+  document.getElementById('viewResult').classList.add('active');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function primerNombre(n){ return n.split(/\s+/)[0].replace(/^\w/,c=>c.toUpperCase()); }
+function claseEstatus(est){
+  if(/PAGAD|CORRIENTE|VIGENTE/.test(est)) return 'st-ok';
+  if(/ATRAS|PROBLEM|PARCIAL/.test(est))   return 'st-warn';
+  if(/CANCEL/.test(est))                  return 'st-bad';
+  return 'st-info';
+}
+
+function salir(){
+  _currentPoliza=null;
+  document.getElementById('viewResult').classList.remove('active');
+  document.getElementById('viewLogin').classList.add('active');
+  document.getElementById('inPoliza').value='';
+  document.getElementById('inTel').value='';
+  msgBox('loginMsg',''); msgBox('resultMsg','');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function descargarEstadoCuenta(){
+  const p=_currentPoliza;
+  if(!p){ showToast('Primero consulta tu póliza'); return; }
+  const btn=document.getElementById('btnPDF'); setBtnLoading(btn,true);
+  msgBox('resultMsg','');
+  ecLoadLibs(()=>{
+    try{
+      const doc=ecPDF(p);
+      doc.save('estado_cuenta_'+String(p.POLIZA||'poliza').replace(/[^\w-]/g,'')+'.pdf');
+      showToast('📄 Estado de cuenta descargado');
+    }catch(e){
+      msgBox('resultMsg','No se pudo generar el PDF: '+e.message);
+      console.error(e);
+    }finally{
+      setBtnLoading(btn,false);
+    }
+  });
+}
+
+/* Enter para consultar */
+['inPoliza','inTel'].forEach(id=>{
+  document.getElementById(id).addEventListener('keydown',e=>{ if(e.key==='Enter') consultar(); });
+});
+
+/* ═══════════════════════════════════════════════════════════════════════
+   MOTOR DE ESTADO DE CUENTA (reusado verbatim de CONSULTA_DE_POLIZAS.html)
+   ═══════════════════════════════════════════════════════════════════════ */
+const EC_CFG = {
+  nombre: 'Arts Nova',
+  dir:    'Emilio Rabaza No. 1820, Colonia Huerta Baeza, Guadalajara, Jalisco',
+  tel:    '3322643781',
+  wa:     '3334917330',
+  logo:   '' // URL opcional de imagen PNG/JPG
+};
+const EC_COLORES = {
+  'PAGADA':'#0E7C66','VIGENTE':'#2563EB','ATRASADA':'#D97706','PROBLEMA':'#EA580C',
+  'CANCELADA POR FALTA DE PAGO':'#DC2626','CANCELADA MANUAL':'#6B7280',
+  'CANCELADA MANUALMENTE':'#6B7280','AL CORRIENTE':'#2563EB'
+};
+function ecColor(est){ return EC_COLORES[(est||'').trim().toUpperCase()] || '#6B7280'; }
+function ecHex(h){ h=h.replace('#',''); return [parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)]; }
+function ecParseFecha(s){
+  if(!s) return null;
+  if(s instanceof Date) return isNaN(s)?null:s;
+  const m=String(s).trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if(!m) return null;
+  const d=new Date(+m[3], +m[2]-1, +m[1]); return isNaN(d)?null:d;
+}
+function ecFechaValida(d){ return d instanceof Date && !isNaN(d) && d.getFullYear()>=2015 && d.getFullYear()<=2030; }
+function ecFmtFecha(d){ if(!ecFechaValida(d)) return '—'; const dd=String(d.getDate()).padStart(2,'0'),mm=String(d.getMonth()+1).padStart(2,'0'); return dd+'/'+mm+'/'+d.getFullYear(); }
+function ecMoneda(n){ n=(typeof n==='number')?n:parseMoney(n); if(n===null||isNaN(n)) n=0; return '$'+(Math.round(n*100)/100).toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function ecAddMonths(date,n){ const d=new Date(date.getTime()); const day=d.getDate(); d.setMonth(d.getMonth()+n); if(d.getDate()<day) d.setDate(0); return d; }
+
+function ecCalcular(p){
+  const costo   = parseMoney(p.COSTO) || 0;
+  const inicial = parseMoney(p['PAGO INICIAL']) || 0;
+  const mensual = parseMoney(p['PAGO MENSUAL']) || 0;
+  const ini = ecParseFecha(p['INICIO VIGENCIA']);
+  const fin = ecParseFecha(p['TERMINO VIGENCIA']);
+  const pagos = Array.isArray(p.PAGOS) ? p.PAGOS : [];
+  const sumaPagos   = pagos.reduce((s,x)=> s + (parseMoney(x.monto)||0), 0);
+  const totalPagado = inicial + sumaPagos;          // mismo cálculo que renderPagos
+  const saldo       = costo - totalPagado;
+  const estatus     = (p.ESTATUS||'').trim() || (saldo<=0 ? 'PAGADA' : '');
+
+  // Calendario de mensualidades (una por mes desde inicio de vigencia)
+  const calendario = [];
+  const montoMens  = Math.max(0, costo - inicial);
+  const nCont = mensual>0 ? Math.max(0, Math.ceil(montoMens/mensual)) : 0;
+  let rest = sumaPagos; const hoy = new Date();
+  for(let i=1;i<=nCont;i++){
+    const venc = ecFechaValida(ini) ? ecAddMonths(ini,i) : null;
+    let monto = mensual; if(i===nCont) monto = montoMens - mensual*(nCont-1);
+    monto = Math.round(monto*100)/100;
+    let estado;
+    if(rest >= monto-0.005){ estado='Pagada'; rest-=monto; }
+    else if(rest>0){ estado='Parcial'; rest=0; }
+    else { estado=(venc && venc<hoy)?'Vencida':'Pendiente'; }
+    if(saldo<=0) estado='Pagada';
+    calendario.push({n:i, vencimiento:venc, monto, estado});
+  }
+  let proximo=null;
+  if(saldo>0){ const pend=calendario.find(c=>c.estado!=='Pagada'); proximo=pend?pend.vencimiento:null; }
+
+  // Tabla de pagos: inicial primero, luego abonos por fecha.
+  // Se omiten los abonos con monto 0 (o nulo); no afectan saldo ni total.
+  const tabla=[];
+  if(inicial>0) tabla.push({recibo:'INICIAL', fecha:ini, monto:inicial, tipo:'Pago Inicial'});
+  const ord = pagos.slice()
+    .filter(x=>{ const m=parseMoney(x.monto); return m!==null && Math.abs(m)>0.0001; })
+    .sort((a,b)=> (a._f||0)-(b._f||0));
+  ord.forEach(x=> tabla.push({recibo:x.recibo, fecha:ecParseFecha(x.fecha), monto:parseMoney(x.monto)||0, tipo:'Abono'}));
+
+  return {costo, inicial, mensual, totalPagado, saldo, estatus, nMensualidades:nCont, calendario, proximo, tabla, ini, fin};
+}
+
+function ecEncabezado(doc){
+  const W=doc.internal.pageSize.getWidth();
+  doc.setFillColor(22,35,61); doc.rect(0,0,W,3,'F');
+  doc.setFont('times','bold'); doc.setFontSize(20); doc.setTextColor(22,35,61);
+  doc.text(EC_CFG.nombre,14,18);
+  doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(107,118,137);
+  doc.text(EC_CFG.dir,14,24);
+  doc.text('Tel. '+EC_CFG.tel+'    ·    WhatsApp '+EC_CFG.wa,14,28.5);
+  doc.setDrawColor(220,225,234); doc.setLineWidth(.4); doc.line(14,33,W-14,33);
+  return 40;
+}
+function ecPill(doc,x,y,txt,color){
+  const [r,g,b]=ecHex(color); doc.setFillColor(r,g,b);
+  doc.setFont('helvetica','bold'); doc.setFontSize(8.5);
+  const w=doc.getTextWidth(txt)+8; doc.roundedRect(x,y-4.6,w,6.4,3,3,'F');
+  doc.setTextColor(255,255,255); doc.text(txt,x+4,y); return w;
+}
+function ecBloque(doc,x,y,titulo,pares,ancho){
+  doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(107,118,137);
+  doc.text(titulo.toUpperCase(),x,y); y+=5; doc.setFontSize(9);
+  pares.forEach(([k,v])=>{
+    doc.setFont('helvetica','normal'); doc.setTextColor(107,118,137); doc.text(k,x,y);
+    doc.setFont('helvetica','bold'); doc.setTextColor(22,35,61);
+    const tx=doc.splitTextToSize(String(v==null||v===''?'—':v),ancho-26); doc.text(tx,x+26,y);
+    y+=Math.max(4.6,tx.length*4.2);
+  });
+  return y;
+}
+
+function ecPDF(p){
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({unit:'mm',format:'a4'});
+  const r = ecCalcular(p);
+  let y = ecEncabezado(doc);
+  const W = doc.internal.pageSize.getWidth();
+
+  doc.setFont('times','bold'); doc.setFontSize(13); doc.setTextColor(22,35,61);
+  doc.text('ESTADO DE CUENTA',14,y);
+  doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(107,118,137);
+  doc.text('Emitido: '+ecFmtFecha(new Date()),W-14,y-4,{align:'right'});
+  doc.text('Póliza N.º '+(p.POLIZA||'—'),W-14,y,{align:'right'});
+  ecPill(doc,14,y+7,(r.estatus||'—').toUpperCase(),ecColor(r.estatus)); y+=16;
+
+  const colW=(W-28)/2;
+  const y1=ecBloque(doc,14,y,'Datos del cliente',[
+    ['Nombre',p.NOMBRE],['Teléfono',p.TELEFONO],['Cobertura',p.COBERTURA],
+    ['Tipo póliza',p['TIPO DE POLIZA']],['Vigencia',ecFmtFecha(r.ini)+' a '+ecFmtFecha(r.fin)]
+  ],colW);
+  const y2=ecBloque(doc,14+colW,y,'Datos del vehículo',[
+    ['Marca',p.MARCA],['Modelo',p.MODELO],['Tipo',p.TIPO],
+    ['Color',p.COLOR],['Placas',p.PLACAS],['Serie',p.SERIE]
+  ],colW);
+  y=Math.max(y1,y2)+4;
+
+  doc.autoTable({
+    startY:y, theme:'grid', margin:{left:14,right:14},
+    head:[['Costo total','Pago inicial','Total pagado','Saldo','Mensualidad','Próx. pago']],
+    body:[[ecMoneda(r.costo),ecMoneda(r.inicial),ecMoneda(r.totalPagado),ecMoneda(r.saldo),ecMoneda(r.mensual),ecFmtFecha(r.proximo)]],
+    headStyles:{fillColor:[22,35,61],fontSize:8,halign:'center'},
+    bodyStyles:{fontSize:9.5,halign:'center',fontStyle:'bold',textColor:[22,35,61]}
+  });
+  y=doc.lastAutoTable.finalY+6;
+
+  doc.setFont('helvetica','bold'); doc.setFontSize(8.5); doc.setTextColor(14,124,102);
+  doc.text('PAGOS REALIZADOS',14,y); y+=2;
+  doc.autoTable({
+    startY:y, margin:{left:14,right:14},
+    head:[['#','Fecha','Recibo','Concepto','Monto']],
+    body:r.tabla.map((t,i)=>[i+1,ecFmtFecha(t.fecha),String(t.recibo==null?'—':t.recibo),t.tipo,ecMoneda(t.monto)]),
+    headStyles:{fillColor:[14,124,102],fontSize:8},
+    bodyStyles:{fontSize:8.5},columnStyles:{0:{cellWidth:8,halign:'center'},4:{halign:'right'}}
+  });
+  y=doc.lastAutoTable.finalY+6;
+
+  if(r.calendario.length){
+    const colE={'Pagada':[14,124,102],'Vencida':[220,38,38],'Pendiente':[107,118,137],'Parcial':[217,119,6]};
+    doc.setFont('helvetica','bold'); doc.setFontSize(8.5); doc.setTextColor(58,74,102);
+    doc.text('CALENDARIO DE MENSUALIDADES',14,y); y+=2;
+    doc.autoTable({
+      startY:y, margin:{left:14,right:14},
+      head:[['Mensualidad','Vence','Monto','Estado']],
+      body:r.calendario.map(c=>[c.n,ecFmtFecha(c.vencimiento),ecMoneda(c.monto),c.estado]),
+      headStyles:{fillColor:[58,74,102],fontSize:8},
+      bodyStyles:{fontSize:8.5},columnStyles:{0:{cellWidth:24,halign:'center'},2:{halign:'right'},3:{halign:'center'}},
+      didParseCell:d=>{ if(d.section==='body'&&d.column.index===3){ const c=colE[d.cell.raw]; if(c){ d.cell.styles.textColor=c; d.cell.styles.fontStyle='bold'; } } }
+    });
+  }
+  if(r.saldo<=0 && r.costo>0){
+    doc.setTextColor(14,124,102); doc.setFont('times','bold'); doc.setFontSize(60);
+    if(doc.setGState) doc.setGState(new doc.GState({opacity:0.12}));
+    doc.text('PAGADA',W/2,doc.internal.pageSize.getHeight()/2,{align:'center',angle:32});
+    if(doc.setGState) doc.setGState(new doc.GState({opacity:1}));
+  }
+  const H=doc.internal.pageSize.getHeight(), n=doc.internal.getNumberOfPages();
+  for(let i=1;i<=n;i++){ doc.setPage(i); doc.setDrawColor(220,225,234); doc.line(14,H-14,W-14,H-14);
+    doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(150,158,170);
+    doc.text(EC_CFG.nombre+' · Documento informativo de cobranza',14,H-9);
+    doc.text('Página '+i+' de '+n,W-14,H-9,{align:'right'}); }
+  return doc;
+}
+
+// Carga jsPDF + autotable bajo demanda (CDN, como loadSheetJS)
+let _ecLibs=false;
+function ecLoadLibs(cb){
+  if(_ecLibs && window.jspdf && window.jspdf.jsPDF){ return cb(); }
+  function inject(src,next){ const s=document.createElement('script'); s.src=src; s.onload=next; s.onerror=()=>showToast('⚠️ No se pudieron cargar las librerías PDF'); document.head.appendChild(s); }
+  const haveJsPDF=()=>window.jspdf && window.jspdf.jsPDF;
+  const haveAuto =()=>{ try{ return !!(window.jspdf.jsPDF.API && window.jspdf.jsPDF.API.autoTable); }catch(e){ return false; } };
+  const step2=()=>{ if(haveAuto()){ _ecLibs=true; cb(); } else inject('https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js',()=>{_ecLibs=true;cb();}); };
+  if(haveJsPDF()) step2();
+  else inject('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',step2);
+}
+
+</script>
+</body>
+</html>
