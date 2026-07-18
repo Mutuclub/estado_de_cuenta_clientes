@@ -93,7 +93,34 @@
   @keyframes spin{to{transform:rotate(360deg)}}
 
   .foot{max-width:560px;width:100%;text-align:center;color:var(--muted);font-size:11.5px;margin-top:22px}
-  @media(max-width:480px){ .card{padding:24px 20px} .summary{grid-template-columns:1fr} }
+  /* Estatus en grande */
+  .big-status{font-family:'Syne';font-weight:800;font-size:26px;letter-spacing:-.5px;line-height:1.15;margin:2px 0 2px}
+  .big-status.st-ok{color:var(--green)} .big-status.st-warn{color:var(--amber)}
+  .big-status.st-bad{color:var(--red)}  .big-status.st-info{color:var(--accent)}
+  .status-desc{font-size:13px;color:var(--muted);margin-bottom:20px}
+
+  /* Pagos del cliente */
+  .pagos-title{font-family:'Syne';font-weight:700;font-size:15px;color:var(--ink);margin:24px 0 12px}
+  .pagos-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
+  .pstat{background:#f7f9fc;border:1px solid var(--line);border-radius:11px;padding:11px 13px}
+  .pstat .pk{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;font-weight:600}
+  .pstat .pv{font-family:'Syne';font-weight:700;font-size:18px;margin-top:3px}
+  .pstat .pv.sp{color:var(--red)} .pstat .pv.so{color:var(--green)}
+  .pagos-tabla-wrap{border:1px solid var(--line);border-radius:12px;overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .ptabla{width:100%;border-collapse:collapse;font-size:13px;min-width:520px}
+  .ptabla th{text-align:left;background:#f4f6fb;color:var(--ink2);font-size:11px;text-transform:uppercase;
+    letter-spacing:.4px;font-weight:700;padding:10px 12px;border-bottom:1px solid var(--line);white-space:nowrap}
+  .ptabla td{padding:10px 12px;border-bottom:1px solid #eef1f7;color:var(--ink);vertical-align:top}
+  .ptabla tbody tr:last-child td{border-bottom:none}
+  .ptabla .c-monto{text-align:right;font-weight:600;color:var(--green);white-space:nowrap}
+  .ptabla .c-recibo{font-weight:600;white-space:nowrap}
+  .ptabla .c-fecha{white-space:nowrap}
+  .ptabla .c-notas{color:var(--muted);font-size:12.5px}
+  .ptabla .fila-inicial{background:#f3f0fe}
+  .ptabla .fila-inicial .c-recibo{color:#7b5cf7}
+  .ptabla .fila-inicial .c-monto{color:var(--ink2)}
+  .pagos-empty{padding:18px;text-align:center;color:var(--muted);font-size:13px}
+  @media(max-width:480px){ .card{padding:24px 20px} .summary{grid-template-columns:1fr} .pagos-stats{grid-template-columns:1fr} }
 </style>
 </head>
 <body>
@@ -136,7 +163,8 @@
   <div class="card view" id="viewResult">
     <div class="greet" id="rGreet">Hola</div>
     <div class="greet-sub" id="rGreetSub">Póliza —</div>
-    <div class="status-pill st-info" id="rPill"><span class="dot"></span><span id="rPillTxt">—</span></div>
+    <div class="big-status st-info" id="rStatus">—</div>
+    <div class="status-desc" id="rStatusDesc"></div>
 
     <div class="summary">
       <div class="cell full">
@@ -164,6 +192,10 @@
         <div class="v" id="rVigencia">—</div>
       </div>
     </div>
+
+    <div class="pagos-title">Pagos del cliente</div>
+    <div class="pagos-stats" id="rPagosStats"></div>
+    <div class="pagos-tabla-wrap" id="rPagosTabla"></div>
 
     <div class="docs-title">Descarga tu documento</div>
     <div class="btn-row">
@@ -204,6 +236,10 @@ function showToast(msg){
   const t=document.getElementById('toast');
   t.textContent=msg; t.classList.add('show');
   clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('show'),3500);
+}
+function escapeHtml(s){
+  return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
 function parseMoney(v){
   if(v===null||v===undefined||v==='') return null;
@@ -253,7 +289,8 @@ function adaptarRegistro(reg){
   const PAGOS = (Array.isArray(reg.pagos)?reg.pagos:[]).map(x=>({
     recibo: x.recibo,
     fecha:  normFecha(x.fecha),
-    monto:  parseMoney(x.monto)
+    monto:  parseMoney(x.monto),
+    notas:  x.notas || ''
   }));
   return {
     POLIZA:            reg.poliza,
@@ -273,6 +310,7 @@ function adaptarRegistro(reg){
     'INICIO VIGENCIA': normFecha(reg.inicio),
     'TERMINO VIGENCIA':normFecha(reg.termino),
     ESTATUS:           reg.estatus,
+    CANCELA:           reg.cancela,   // requiere que Code.gs envíe la columna CANCELA (ver nota)
     PAGOS
   };
 }
@@ -331,16 +369,77 @@ async function consultar(){
   }
 }
 
+const ESTATUS_DESC = {
+  'PAGADA':'Completamente pagada.',
+  'VIGENTE':'Al corriente de sus pagos.',
+  'ATRASADA':'Una mensualidad pendiente (30 días de atraso).',
+  'PROBLEMA':'Dos mensualidades pendientes (60 días de atraso).',
+  'CANCELADA POR FALTA DE PAGO':'Tres o más mensualidades pendientes (90+ días de atraso).',
+  'CANCELADA MANUALMENTE':'Póliza cancelada de forma manual.'
+};
+
+/* Estatus por reglas de negocio (no el guardado):
+   CANCELA==-1 → manual · saldo<=0 → PAGADA · si no, según mensualidades vencidas. */
+function derivarEstatus(p, r){
+  const cancela = String(p.CANCELA==null?'':p.CANCELA).trim();
+  const guardado = String(p.ESTATUS||'').toUpperCase();
+  if(cancela==='-1' || /CANCELAD.*MANUAL/.test(guardado)) return 'CANCELADA MANUALMENTE';
+  if(r.saldo<=0.5) return 'PAGADA';
+  const hoy=new Date();
+  const vencidas=r.calendario.filter(c=>c.vencimiento && c.vencimiento<=hoy && c.estado!=='Pagada').length;
+  if(vencidas>=3) return 'CANCELADA POR FALTA DE PAGO';
+  if(vencidas===2) return 'PROBLEMA';
+  if(vencidas===1) return 'ATRASADA';
+  return 'VIGENTE';
+}
+
+/* Listado de pagos del cliente (inicial + abonos), como la vista interna. */
+function renderPagosCliente(p, r){
+  const inicial = parseMoney(p['PAGO INICIAL']) || 0;
+  const lista = [];
+  if(inicial>0) lista.push({recibo:'INICIAL', fecha:p['INICIO VIGENCIA']||'', monto:inicial, notas:'Enganche / pago inicial', inicial:true});
+  (Array.isArray(p.PAGOS)?p.PAGOS:[]).forEach(x=>{
+    const m=parseMoney(x.monto);
+    if(m===null || Math.abs(m)<=0.0001) return;   // se omiten pagos en cero
+    lista.push({recibo:x.recibo, fecha:x.fecha, monto:m, notas:x.notas||''});
+  });
+  const total = lista.reduce((s,x)=>s+(x.monto||0),0);
+  const pend  = r.saldo>0.5;
+
+  document.getElementById('rPagosStats').innerHTML =
+    `<div class="pstat"><div class="pk">Pagos registrados</div><div class="pv">${lista.length}</div></div>`+
+    `<div class="pstat"><div class="pk">Total pagado</div><div class="pv">${ecMoneda(total)}</div></div>`+
+    `<div class="pstat"><div class="pk">Saldo</div><div class="pv ${pend?'sp':'so'}">${ecMoneda(Math.max(0,r.saldo))}</div></div>`;
+
+  const wrap = document.getElementById('rPagosTabla');
+  if(!lista.length){ wrap.innerHTML='<div class="pagos-empty">Sin pagos registrados para esta póliza.</div>'; return; }
+  let filas='';
+  lista.forEach((x,i)=>{
+    filas += `<tr class="${x.inicial?'fila-inicial':''}">`+
+      `<td>${i+1}</td>`+
+      `<td class="c-recibo">${escapeHtml(x.recibo||'—')}</td>`+
+      `<td class="c-fecha">${escapeHtml(x.fecha||'—')}</td>`+
+      `<td class="c-monto">${ecMoneda(x.monto)}</td>`+
+      `<td class="c-notas">${escapeHtml(x.notas||'')}</td>`+
+    `</tr>`;
+  });
+  wrap.innerHTML = `<table class="ptabla"><thead><tr>`+
+    `<th>#</th><th>Recibo</th><th>Fecha</th><th>Monto</th><th>Notas</th>`+
+    `</tr></thead><tbody>${filas}</tbody></table>`;
+}
+
 function mostrarResultado(p){
   const r=ecCalcular(p);
   const nombre=(p.NOMBRE||'').toString().trim();
   document.getElementById('rGreet').textContent = nombre ? 'Hola, '+primerNombre(nombre) : 'Tu póliza';
   document.getElementById('rGreetSub').textContent = 'Póliza N.º '+(p.POLIZA||'—');
 
-  const est=(r.estatus||'').toUpperCase();
-  const pill=document.getElementById('rPill'), txt=document.getElementById('rPillTxt');
-  txt.textContent = est||'—';
-  pill.className='status-pill '+claseEstatus(est);
+  const est = derivarEstatus(p, r);
+  p.ESTATUS = est;                       // el PDF mostrará el mismo estatus
+  const stEl=document.getElementById('rStatus');
+  stEl.textContent = est;
+  stEl.className='big-status '+claseEstatus(est);
+  document.getElementById('rStatusDesc').textContent = ESTATUS_DESC[est] || '';
 
   const saldoEl=document.getElementById('rSaldo');
   saldoEl.textContent=ecMoneda(Math.max(0,r.saldo));
@@ -353,6 +452,8 @@ function mostrarResultado(p){
   document.getElementById('rVehiculo').textContent = veh||'—';
   document.getElementById('rPlacas').textContent = p.PLACAS||'—';
   document.getElementById('rVigencia').textContent = ecFmtFecha(r.ini)+' – '+ecFmtFecha(r.fin);
+
+  renderPagosCliente(p, r);
 
   document.getElementById('viewLogin').classList.remove('active');
   document.getElementById('viewResult').classList.add('active');
