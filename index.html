@@ -648,7 +648,7 @@ function ecEncabezado(doc){
   doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(107,118,137);
   doc.text(EC_CFG.dir,14,24);
   doc.text('Tel. '+EC_CFG.tel+'    ·    WhatsApp '+EC_CFG.wa,14,28.5);
-  try{ doc.addImage(LOGO_ARTS_NOVA,'JPEG',W-14-32,7,32,26); }catch(e){}
+  try{ doc.addImage(LOGO_ARTS_NOVA,'JPEG',W-14-28,5.5,28,22.9); }catch(e){}
   doc.setDrawColor(220,225,234); doc.setLineWidth(.4); doc.line(14,33,W-14,33);
   return 40;
 }
